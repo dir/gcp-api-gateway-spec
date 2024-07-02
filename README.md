@@ -44,7 +44,7 @@ After installing, you can now run the tool using: `./vendor/bin/gcp-api-gateway-
 Run the following command anywhere in your terminal:
 
 ```bash
-composer require lukedavis/gcp-api-gateway-spec --dev
+composer global require lukedavis/gcp-api-gateway-spec
 ```
 
 After installing, the tool will now be in your composer installation's bin directory at `<composer-home>/vendor/bin/gcp-api-gateway-spec`.
