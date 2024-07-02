@@ -190,6 +190,10 @@ class Generator
 
         $mergedConfig = $this->array_merge_overwrite($mergedConfig, $spec);
 
+        if (!is_null($this->backendHost)) {
+            $mergedConfig['x-google-backend']['address'] = $this->backendHost;
+        }
+
         $this->outputSpec['paths'][$path][$method] = $mergedConfig;
 
         if ($this->preserveResponses) {
