@@ -27,11 +27,11 @@ This tool is provided as-is and without warranties of any kind. Luke Davis is no
 
 Users are responsible for ensuring the security and suitability of this tool for their specific needs and use cases. Use at your own risk.
 
-### Installation
+## Installation
 
 Ensure you have [Composer](https://getcomposer.org/) installed and available in your PATH, as well as PHP 8.1 or later.
 
-#### Local
+### Local
 Run the following command in your project root:
 
 ```bash
@@ -40,18 +40,18 @@ composer require lukedavis/gcp-api-gateway-spec --dev
 
 After installing, you can now run the tool using: `./vendor/bin/gcp-api-gateway-spec generate` from your project root.
 
-#### Global
+### Global
 Run the following command anywhere in your terminal:
 
 ```bash
 composer require lukedavis/gcp-api-gateway-spec --dev
 ```
 
-After installing, the tool will now be in your composer installation's bin directory.
+After installing, the tool will now be in your composer installation's bin directory at `<composer-home>/vendor/bin/gcp-api-gateway-spec`.
 
-This usually looks like: `<composer-home>/vendor/bin/gcp-api-gateway-spec`. You can view the path to your composer's home directory by checking with `composer -n config --global home`.
+You can view the path to your composer's home directory by running `composer -n config --global home`.
 
-> You can alias the tool in your `.zshrc` or `.bashrc` or add the composer bin directory to your PATH for easier access.
+> You can alias the path to the tool or add the composer vendor/bin directory to your PATH in your `.zshrc` or `.bashrc` for easier access.
 
 ## Configuration
 
