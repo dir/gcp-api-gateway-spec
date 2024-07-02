@@ -13,9 +13,11 @@ The generator does not handle converting API specs (i.e., OpenAPI 3.0 to Swagger
 The main use case of this tool is an intermediate step in the deployment of an API to Google Cloud Platform's API Gateway. As Google still uses the old Swagger 2.0 spec, and then also has additional fields that can be added/removed, this tool helps to automate the process of generating a spec file that is compatible with the API Gateway. A common use case for this tool would be:
 
 CI Pipeline:
-```
-Autogenerate spec for your API -> convert spec to Swagger 2.0 -> Generate API Gateway spec file -> Deploy to API Gateway
-```
+
+1. Autogenerate spec for your API
+2. Convert spec to Swagger 2.0
+3. Generate API Gateway spec file
+4. Deploy to API Gateway
 
 ## Disclaimer
 
