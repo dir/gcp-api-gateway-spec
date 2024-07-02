@@ -1,2 +1,7 @@
 vendor
 storage/phpstan/*
+config.yml
+openapi.yml
+out
+generator-output.yaml
+config.yaml
