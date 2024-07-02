@@ -19,8 +19,8 @@
     ],
     "require": {
         "php": ">=8.1",
-        "symfony/console": "^7.1",
-        "symfony/yaml": "^7.1",
+        "symfony/console": "^7.0",
+        "symfony/yaml": "^7.0",
         "composer-runtime-api": "*"
     },
     "require-dev": {
