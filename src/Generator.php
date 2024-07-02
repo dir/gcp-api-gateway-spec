@@ -26,7 +26,17 @@ class Generator
      *
      * @var array<string, mixed>
      */
-    protected array $outputSpec;
+    protected array $outputSpec = [];
+
+    /**
+     * The host to use for the generated spec.
+     */
+    protected ?string $host;
+
+    /**
+     * The backend host to use for the generated spec.
+     */
+    protected ?string $backendHost;
 
     /**
      * Whether to preserve responses from the generated spec file and replace them with generic 200 responses.
@@ -39,12 +49,18 @@ class Generator
      * @param string $inputSpec Path to the input Swagger 2.0 spec file
      * @param string $config    Path to the config file
      */
-    public function __construct(string $inputSpec, ?string $outputPath, string $config, bool $preserveResponses = false)
+    public function __construct(
+        string $inputSpec,
+        ?string $outputPath,
+        #[\SensitiveParameter]
+        string $config,
+        #[\SensitiveParameter]
+        ?string $host = null,
+        #[\SensitiveParameter]
+        ?string $backendHost = null,
+        bool $preserveResponses = false)
     {
         $this->inputSpec = Yaml::parseFile($inputSpec);
-        $this->outputSpec = [];
-
-        $this->preserveResponses = $preserveResponses;
 
         $this->config = new Config(
             config: Yaml::parseFile($config),
@@ -54,6 +70,11 @@ class Generator
         $this->output = new OutputHandler(
             outputPath: $outputPath
         );
+
+        $this->host = $host;
+        $this->backendHost = $backendHost;
+
+        $this->preserveResponses = $preserveResponses;
     }
 
     /**
@@ -107,7 +128,6 @@ class Generator
             'schemes' => ['https'],
             'produces' => $this->config->get('produces') ?? ['application/json'],
             'consumes' => $this->config->get('consumes') ?? ['application/json'],
-            'paths' => [],
         ];
 
         // If x-google-backend is set, add it to the output spec
@@ -119,6 +139,18 @@ class Generator
         if (!is_null($this->config->get('securityDefinitions'))) {
             $this->outputSpec['securityDefinitions'] = $this->config->get('securityDefinitions');
         }
+
+        // If host is set, add it to the output spec
+        if (!is_null($this->host)) {
+            $this->outputSpec['host'] = $this->host;
+        }
+
+        // If backend host is set, add it to the output spec
+        if (!is_null($this->backendHost)) {
+            $this->outputSpec['x-google-backend']['address'] = $this->backendHost;
+        }
+
+        $this->outputSpec['paths'] = [];
     }
 
     /**

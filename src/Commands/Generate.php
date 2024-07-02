@@ -24,6 +24,8 @@ class Generate extends Command
             ->addArgument('input', InputArgument::REQUIRED, 'The input Swagger 2.0 spec file')
             ->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'A relative or absolute path to save the generated spec to. Defaults to current directory/generator-output.yaml.')
             ->addOption('config', 'c', InputOption::VALUE_REQUIRED, 'The path to the config file.')
+            ->addOption('host', null, InputOption::VALUE_OPTIONAL, 'The host to use for the generated spec. Optional.')
+            ->addOption('backend', 'b', InputOption::VALUE_OPTIONAL, 'The backend host use for the generated spec. Optional.')
             ->addOption('preserve-responses', 'p', InputOption::VALUE_NONE, 'Whether to preserve the provided response schemas from the input spec. By default, this tool will replace them with generic 200 responses.')
         ;
     }
@@ -53,6 +55,8 @@ class Generate extends Command
             $input->getArgument('input'),
             $input->getOption('output'),
             $input->getOption('config'),
+            $input->getOption('host'),
+            $input->getOption('backend'),
             $input->getOption('preserve-responses')
         );
 
