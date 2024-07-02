@@ -1,8 +1,12 @@
+# Optional, defaults to application/json if not set
+# can also be overridden at the operation level
 produces:
   - application/json
 consumes:
   - application/json
 
+# Security definitions
+# Can be omitted if not using security
 securityDefinitions:
   auth0:
     authorizationUrl: ''
@@ -12,17 +16,17 @@ securityDefinitions:
     x-google-jwks_uri: 'https://example.auth0.com/.well-known/jwks.json'
     x-google-audiences: 'https://example.com'
 
-# Default configuration to be applied to each
-# path's methods
-default-path:
+# The default configuration to be applied to each operation
+path-defaults:
   security:
     - auth0: []
   x-google-backend:
     path_translation: 'APPEND_PATH_TO_ADDRESS'
 
+# Path overrides for specific operations
 # Removes security from /unsecured-route POST and GET
 # and declares that the POST method consumes multipart/form-data
-override-paths:
+path-overrides:
   /unsecured-route:
     post:
       consumes:

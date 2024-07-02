@@ -107,9 +107,18 @@ class Generator
             'schemes' => ['https'],
             'produces' => $this->config->get('produces') ?? ['application/json'],
             'consumes' => $this->config->get('consumes') ?? ['application/json'],
-            'securityDefinitions' => $this->config->get('securityDefinitions') ?? [],
             'paths' => [],
         ];
+
+        // If x-google-backend is set, add it to the output spec
+        if (!is_null($this->config->get('x-google-backend'))) {
+            $this->outputSpec['x-google-backend'] = $this->config->get('x-google-backend');
+        }
+
+        // If securityDefinitions is set, add it to the output spec
+        if (!is_null($this->config->get('securityDefinitions'))) {
+            $this->outputSpec['securityDefinitions'] = $this->config->get('securityDefinitions');
+        }
     }
 
     /**
@@ -136,21 +145,18 @@ class Generator
      */
     protected function addMethod(string $path, string $method, array $spec): void
     {
-        $defaultPathConfig = $this->config->get('default-path') ?? [];
-        $methodConfig = $this->config->get("paths.{$path}.{$method}") ?? [];
+        // Initial merge where methodConfig completely overrides defaultPathConfig
+        $defaultPathConfig = $this->config->get('path-defaults') ?? [];
+        $methodConfig = $this->config->get("path-overrides.{$path}.{$method}") ?? [];
 
-        // Merge the default-path config with the method-specific config
-        // methodConfig overrides defaultPathConfig
-        $mergedConfig = array_merge_recursive($defaultPathConfig, $methodConfig, $spec);
+        // Directly replace arrays in defaultPathConfig with those in methodConfig
+        $mergedConfig = $defaultPathConfig;
 
-        // Ensure method-specific configurations take precedence
         foreach ($methodConfig as $key => $value) {
             $mergedConfig[$key] = $value;
         }
 
-        foreach ($spec as $key => $value) {
-            $mergedConfig[$key] = $value;
-        }
+        $mergedConfig = $this->array_merge_overwrite($mergedConfig, $spec);
 
         $this->outputSpec['paths'][$path][$method] = $mergedConfig;
 
@@ -185,5 +191,30 @@ class Generator
         unset($this->outputSpec['paths'][$path][$method]['responses']);
 
         $this->outputSpec['paths'][$path][$method]['responses'] = $responses;
+    }
+
+    /**
+     * Merges two arrays recursively, with the second array taking precedence.
+     *
+     * @param array<string, mixed> $array1 The first array
+     * @param array<string, mixed> $array2 The second array
+     *
+     * @return array<string, mixed> The merged array
+     */
+    private function array_merge_overwrite(array &$array1, array &$array2)
+    {
+        $merged = $array1;
+
+        foreach ($array2 as $key => &$value) {
+            if (is_array($value) && isset($merged[$key]) && is_array($merged[$key])) {
+                // If both are arrays, recursively merge
+                $merged[$key] = $this->array_merge_overwrite($merged[$key], $value);
+            } else {
+                // Otherwise, replace the value
+                $merged[$key] = $value;
+            }
+        }
+
+        return $merged;
     }
 }

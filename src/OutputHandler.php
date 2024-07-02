@@ -53,7 +53,7 @@ class OutputHandler
                 $outputSpec,
                 10,
                 2,
-                Yaml::DUMP_OBJECT | Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_EXCEPTION_ON_INVALID_TYPE | Yaml::DUMP_NUMERIC_KEY_AS_STRING
+                Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_EXCEPTION_ON_INVALID_TYPE | Yaml::DUMP_NUMERIC_KEY_AS_STRING
             )
         );
 

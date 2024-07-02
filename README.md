@@ -63,12 +63,12 @@ securityDefinitions: []
 
 # Default configuration applied to all paths if not overridden
 # Useful for setting global security definitions
-default-path:
+path-defaults:
   security: []
 
 # Path/method specific overrides
 # Useful for setting security definitions on specific paths
-override-paths: []
+path-overrides: []
 ```
 
 ## Usage
