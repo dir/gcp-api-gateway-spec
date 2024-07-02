@@ -19,7 +19,11 @@ Autogenerate spec for your API -> convert spec to Swagger 2.0 -> Generate API Ga
 
 ## Disclaimer
 
-This tool is not officially supported by Google Cloud Platform or the API Gateway team. This tool is provided as-is and without warranties of any kind. Luke Davis is not responsible for any security issues, vulnerabilities, or other problems that may arise from the use of this tool. Users are responsible for ensuring the security and suitability of this tool for their specific needs and use cases. Use at your own risk.
+This tool is not officially supported by Google Cloud Platform or the API Gateway team.
+
+This tool is provided as-is and without warranties of any kind. Luke Davis is not responsible for any security issues, vulnerabilities, or other problems that may arise from the use of this tool.
+
+Users are responsible for ensuring the security and suitability of this tool for their specific needs and use cases. Use at your own risk.
 
 ## Installation
 
