@@ -32,8 +32,7 @@ Users are responsible for ensuring the security and suitability of this tool for
 Ensure you have [Composer](https://getcomposer.org/) installed and available in your PATH, as well as PHP 8.1 or later.
 
 ```bash
-composer require -g lukedavis/gcp-api-gateway-spec
-```
+composer global require lukedavis/gcp-api-gateway-spec
 
 ## Configuration
 

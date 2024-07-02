@@ -14,10 +14,14 @@
             "email": "luke@finesse.host"
         }
     ],
+    "bin": [
+        "bin/gcp-api-gateway-spec"
+    ],
     "require": {
         "php": ">=8.1",
         "symfony/console": "^7.1",
-        "symfony/yaml": "^7.1"
+        "symfony/yaml": "^7.1",
+        "composer-runtime-api": "*"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.59",
