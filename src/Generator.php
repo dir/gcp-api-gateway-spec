@@ -19,7 +19,7 @@ class Generator
     /**
      * Output handler.
      */
-    protected Output $output;
+    protected OutputHandler $output;
 
     /**
      * Generated GCP API Gateway spec.
@@ -29,24 +29,30 @@ class Generator
     protected array $outputSpec;
 
     /**
+     * Whether to preserve responses from the generated spec file and replace them with generic 200 responses.
+     */
+    protected bool $preserveResponses;
+
+    /**
      * Create a new Generator instance.
      *
-     * @param string $inputSpec   Path to the input Swagger 2.0 spec file
-     * @param string $config      Path to the config file
-     * @param string $output_path Destination for the output spec file
+     * @param string $inputSpec Path to the input Swagger 2.0 spec file
+     * @param string $config    Path to the config file
      */
-    public function __construct(string $inputSpec, string $config, string $output_path)
+    public function __construct(string $inputSpec, ?string $outputPath, string $config, bool $preserveResponses = false)
     {
         $this->inputSpec = Yaml::parseFile($inputSpec);
         $this->outputSpec = [];
+
+        $this->preserveResponses = $preserveResponses;
 
         $this->config = new Config(
             config: Yaml::parseFile($config),
             inputSpec: $this->inputSpec
         );
 
-        $this->output = new Output(
-            output_path: $output_path
+        $this->output = new OutputHandler(
+            outputPath: $outputPath
         );
     }
 
@@ -66,7 +72,20 @@ class Generator
     public function generate(): void
     {
         $this->createBaseSpec();
-        $this->output->save($this->outputSpec);
+
+        foreach ($this->inputSpec['paths'] as $path => $methods) {
+            $this->addPath($path, $methods);
+        }
+    }
+
+    /**
+     * Saves the generated spec file.
+     *
+     * @return string The path to the saved file
+     */
+    public function save(): string
+    {
+        return $this->output->save($this->outputSpec);
     }
 
     /**
@@ -84,14 +103,87 @@ class Generator
                 'description' => $this->config->get('info.description'),
                 'version' => $this->config->get('info.version'),
             ],
-            'host' => $this->config->get('host'),
-            'basePath' => $this->config->get('basePath'),
+            'basePath' => $this->config->get('basePath') ?? '/',
             'schemes' => ['https'],
-            'produces' => $this->config->get('produces'),
-            'consumes' => $this->config->get('consumes'),
-            'securityDefinitions' => $this->config->get('securityDefinitions'),
-            'x-google-backend' => $this->config->get('x-google-backend'),
+            'produces' => $this->config->get('produces') ?? ['application/json'],
+            'consumes' => $this->config->get('consumes') ?? ['application/json'],
+            'securityDefinitions' => $this->config->get('securityDefinitions') ?? [],
             'paths' => [],
         ];
+    }
+
+    /**
+     * Adds a path to the output spec file.
+     *
+     * @param string               $path    The path to add
+     * @param array<string, mixed> $methods The methods for the path
+     */
+    protected function addPath(string $path, array $methods): void
+    {
+        $this->outputSpec['paths'][$path] = $methods;
+
+        foreach ($methods as $method => $details) {
+            $this->addMethod($path, $method, $details);
+        }
+    }
+
+    /**
+     * Adds a method to the output spec file.
+     *
+     * @param string               $path   The path for the method
+     * @param string               $method The method to add
+     * @param array<string, mixed> $spec   The spec for the method
+     */
+    protected function addMethod(string $path, string $method, array $spec): void
+    {
+        $defaultPathConfig = $this->config->get('default-path') ?? [];
+        $methodConfig = $this->config->get("paths.{$path}.{$method}") ?? [];
+
+        // Merge the default-path config with the method-specific config
+        // methodConfig overrides defaultPathConfig
+        $mergedConfig = array_merge_recursive($defaultPathConfig, $methodConfig, $spec);
+
+        // Ensure method-specific configurations take precedence
+        foreach ($methodConfig as $key => $value) {
+            $mergedConfig[$key] = $value;
+        }
+
+        foreach ($spec as $key => $value) {
+            $mergedConfig[$key] = $value;
+        }
+
+        $this->outputSpec['paths'][$path][$method] = $mergedConfig;
+
+        if ($this->preserveResponses) {
+            $responses = $this->inputSpec['paths'][$path][$method]['responses'] ?? [];
+        } else {
+            $responses = [
+                '200' => [
+                    'description' => 'Successful response',
+                    'schema' => [
+                        'type' => 'object',
+                    ],
+                ],
+            ];
+        }
+
+        unset($this->outputSpec['paths'][$path]['parameters']);
+
+        preg_match_all('/\{(\w+)\}/', $path, $matches);
+
+        if (isset($matches[1])) {
+            foreach ($matches[1] as $parameterName) {
+                $this->outputSpec['paths'][$path][$method]['parameters'][] = [
+                    'name' => $parameterName,
+                    'in' => 'path',
+                    'required' => true,
+                    'type' => 'string',
+                ];
+            }
+        }
+
+        unset($this->outputSpec['paths'][$path][$method]['responses']);
+
+        $this->outputSpec['paths'][$path][$method]['responses'] = $responses;
     }
 }

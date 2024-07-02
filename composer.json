@@ -1,6 +1,6 @@
 {
     "name": "lukedavis/gcp-api-gateway-spec",
-    "description": "Generates a Google Cloud API Gateway spec file based on user config and a given Swagger 2.0 YAML",
+    "description": "Generates a Google Cloud API Gateway spec file based on a provided config and a given Swagger 2.0 YAML",
     "type": "library",
     "license": "MIT",
     "version": "1.0.0",
@@ -16,7 +16,7 @@
         }
     ],
     "require": {
-        "php": "^8.3",
+        "php": "^8.0",
         "symfony/console": "^7.1",
         "symfony/yaml": "^7.1"
     },

@@ -1,0 +1,32 @@
+produces:
+  - application/json
+consumes:
+  - application/json
+
+securityDefinitions:
+  auth0:
+    authorizationUrl: ''
+    flow: implicit
+    type: oauth2
+    x-google-issuer: 'https://example.auth0.com/'
+    x-google-jwks_uri: 'https://example.auth0.com/.well-known/jwks.json'
+    x-google-audiences: 'https://example.com'
+
+# Default configuration to be applied to each
+# path's methods
+default-path:
+  security:
+    - auth0: []
+  x-google-backend:
+    path_translation: 'APPEND_PATH_TO_ADDRESS'
+
+# Removes security from /unsecured-route POST and GET
+# and declares that the POST method consumes multipart/form-data
+override-paths:
+  /unsecured-route:
+    post:
+      consumes:
+        - multipart/form-data
+      security: []
+    get:
+      security: []
