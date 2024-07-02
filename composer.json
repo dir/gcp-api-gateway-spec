@@ -1,0 +1,28 @@
+{
+    "name": "lukedavis/gcp-api-gateway-spec",
+    "description": "Generates a Google Cloud API Gateway spec file based on user config and a given Swagger 2.0 YAML",
+    "type": "library",
+    "license": "MIT",
+    "version": "1.0.0",
+    "autoload": {
+        "psr-4": {
+            "LukeDavis\\GcpApiGatewaySpec\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Luke Davis",
+            "email": "luke@finesse.host"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "symfony/console": "^7.1",
+        "symfony/yaml": "^7.1"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.59",
+        "phpstan/phpstan-strict-rules": "^1.6",
+        "phpstan/phpstan": "^1.11"
+    }
+}
