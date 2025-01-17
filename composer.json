@@ -1,12 +1,18 @@
 {
   "name": "lukedavis/gcp-api-gateway-spec",
   "description": "Generates a Google Cloud API Gateway spec file based on a provided config and a given Swagger 2.0 YAML",
-  "type": "library",
+  "keywords": [
+    "google",
+    "gcp",
+    "gateway",
+    "api",
+    "openapi",
+    "oas"
+  ],
   "license": "MIT",
-  "autoload": {
-    "psr-4": {
-      "LukeDavis\\GcpApiGatewaySpec\\": "src/"
-    }
+  "support": {
+    "issues": "https://github.com/dir/gcp-api-gateway-spec/issues",
+    "source": "https://github.com/dir/gcp-api-gateway-spec"
   },
   "authors": [
     {
@@ -14,6 +20,12 @@
       "email": "luke@finesse.host"
     }
   ],
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "LukeDavis\\GcpApiGatewaySpec\\": "src/"
+    }
+  },
   "bin": [
     "bin/gcp-api-gateway-spec"
   ],

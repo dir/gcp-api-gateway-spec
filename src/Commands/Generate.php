@@ -3,7 +3,6 @@
 namespace LukeDavis\GcpApiGatewaySpec\Commands;
 
 use LukeDavis\GcpApiGatewaySpec\Generator;
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -11,16 +10,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-#[AsCommand(
-    name: 'generate',
-    description: 'Generates a Google Cloud API Gateway spec file based on a provided config and a given Swagger 2.0 YAML',
-    hidden: false
-)]
 class Generate extends Command
 {
     protected function configure(): void
     {
         $this
+            ->setName('generate')
+            ->setDescription('Generates a Google Cloud API Gateway spec file based on a provided config and a given Swagger 2.0 YAML')
+            ->setHidden(false)
             ->addArgument('input', InputArgument::REQUIRED, 'The input Swagger 2.0 spec file')
             ->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'A relative or absolute path to save the generated spec to. Defaults to current directory/generator-output.yaml.')
             ->addOption('config', 'c', InputOption::VALUE_REQUIRED, 'The path to the config file.')

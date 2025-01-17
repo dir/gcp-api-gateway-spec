@@ -7,6 +7,8 @@ use LukeDavis\GcpApiGatewaySpec\Commands\Generate;
 use Symfony\Component\Console\Application;
 
 $application = new Application();
+$application->setName('gcp-api-gateway-spec');
+$application->setVersion('1.2.9');
 
 $application->add(new Generate());
 
