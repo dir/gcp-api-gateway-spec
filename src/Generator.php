@@ -45,6 +45,19 @@ class Generator
     protected bool $preserveResponses;
 
     /**
+     * Default responses to use when stripping responses and in the case of empty responses.
+     * @var array<mixed>
+     */
+    protected array $defaultResponses = [
+        '200' => [
+            'description' => 'Successful response',
+            'schema' => [
+                'type' => 'object',
+            ],
+        ],
+    ];
+
+    /**
      * Unsupported properties to remove recursively
      * @var array<string>
      */
@@ -209,6 +222,8 @@ class Generator
         $methodSpec = $this->addMissingPathParams($path, $methodSpec);
         if (isset($methodSpec['responses'])) {
             $methodSpec['responses'] = $this->getMethodResponses($methodSpec['responses']);
+        } else {
+            $methodSpec['responses'] = $this->defaultResponses;
         }
 
         $this->outputSpec['paths'][$path][$method] = $methodSpec;
@@ -222,18 +237,11 @@ class Generator
      */
     protected function getMethodResponses(array $responses): array
     {
-        if (!$this->preserveResponses) {
-            $responses = [
-                '200' => [
-                    'description' => 'Successful response',
-                    'schema' => [
-                        'type' => 'object',
-                    ],
-                ],
-            ];
+        if ($this->preserveResponses) {
+            return $responses;
         }
 
-        return $responses;
+        return $this->defaultResponses;
     }
 
     /**
