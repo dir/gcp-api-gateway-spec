@@ -3,6 +3,7 @@
 namespace LukeDavis\GcpApiGatewaySpec;
 
 use Symfony\Component\Yaml\Yaml;
+use LukeDavis\GcpApiGatewaySpec\Helpers;
 
 class Generator
 {
@@ -97,6 +98,8 @@ class Generator
         foreach ($this->inputSpec['paths'] as $path => $methods) {
             $this->addPath($path, $methods);
         }
+
+        // Recursively look for "type" keys in the output spec, and 
     }
 
     /**
@@ -121,7 +124,7 @@ class Generator
             'swagger' => '2.0',
             'info' => [
                 'title' => $this->config->get('info.title'),
-                'description' => $this->config->get('info.description'),
+                'description' => $this->config->get('info.description') ?? '',
                 'version' => $this->config->get('info.version'),
             ],
             'basePath' => $this->config->get('basePath') ?? '/',
@@ -177,28 +180,28 @@ class Generator
      */
     protected function addMethod(string $path, string $method, array $spec): void
     {
-        // Initial merge where methodConfig completely overrides defaultPathConfig
-        $defaultPathConfig = $this->config->get('path-defaults') ?? [];
-        $methodConfig = $this->config->get("path-overrides.{$path}.{$method}") ?? [];
+        $methodSpec = $this->getNormalizedMethod($path, $method, $spec);
 
-        // Directly replace arrays in defaultPathConfig with those in methodConfig
-        $mergedConfig = $defaultPathConfig;
-
-        foreach ($methodConfig as $key => $value) {
-            $mergedConfig[$key] = $value;
+        $methodSpec = $this->addMissingPathParams($path, $methodSpec);
+        if (isset($methodSpec['responses'])) {
+            $methodSpec['responses'] = $this->getMethodResponses($methodSpec['responses']);
+        }
+        if (isset($methodSpec['parameters'])) {
+            $methodSpec['parameters'] = $this->getFixedParameters($methodSpec['parameters']);
         }
 
-        $mergedConfig = $this->array_merge_overwrite($mergedConfig, $spec);
+        $this->outputSpec['paths'][$path][$method] = $methodSpec;
+    }
 
-        if (!is_null($this->backendHost)) {
-            $mergedConfig['x-google-backend']['address'] = $this->backendHost;
-        }
-
-        $this->outputSpec['paths'][$path][$method] = $mergedConfig;
-
-        if ($this->preserveResponses) {
-            $responses = $this->inputSpec['paths'][$path][$method]['responses'] ?? [];
-        } else {
+    /**
+     * Gets the responses for a method
+     *
+     * @param array<string, mixed>   $responses The original responses for the method
+     * @return array<int|string, mixed>  The responses for the method
+     */
+    protected function getMethodResponses(array $responses): array
+    {
+        if (!$this->preserveResponses) {
             $responses = [
                 '200' => [
                     'description' => 'Successful response',
@@ -209,13 +212,91 @@ class Generator
             ];
         }
 
-        unset($this->outputSpec['paths'][$path]['parameters']);
+        return $responses;
+    }
 
+    /**
+     * Fixes broken path parameters
+     * 
+     * Converts arrays of types to single types, and removes 'null' types
+     * in favor of x-nullable: true
+     *
+     * @param array<string, mixed>   $parameters The spec for the method
+     * @return array<string, mixed>  The merged method config
+     */
+    protected function getFixedParameters(array $parameters): array
+    {
+        foreach ($parameters as &$param) {
+            if (isset($param['type']) && is_array($param['type'])) {
+                if (in_array('null', $param['type'], true)) {
+                    $param['x-nullable'] = true;
+                    $param['type'] = array_filter($param['type'], fn($type) => $type !== 'null');
+                    $param['type'] = reset($param['type']);
+                }
+            }
+            if (isset($param['schema']) && isset($param['schema']['properties'])) {
+                $schemaProperties = &$param['schema']['properties'];
+                foreach ($schemaProperties as &$property) {
+                    if (isset($property['type']) && is_array($property['type'])) {
+                        if (in_array('null', $property['type'], true)) {
+                            $property['x-nullable'] = true;
+                            $property['type'] = array_filter($property['type'], fn($type) => $type !== 'null');
+                            $property['type'] = reset($property['type']);
+                        }
+                    }
+                }
+                unset($property); // Unset the reference to avoid accidental modifications
+            }
+        }
+        unset($param); // Unset the reference to avoid accidental modifications
+
+        return $parameters;
+    }
+
+    protected function getFixedType(mixed $type): string
+    {
+        if (!is_array($type)) {
+            return $type;
+        }
+
+        if (in_array('null', $type, true)) {
+            $type = array_filter($type, fn($type) => $type !== 'null');
+            $type = reset($type);
+        }
+
+        return $type;
+    }
+
+    /**
+     * Adds missing path parameters to a method spec.
+     *
+     * @param string                 $path       The path for the method
+     * @param array<string, mixed>   $methodSpec The spec for the method
+     * @return array<string, mixed>  The merged method config
+     */
+    protected function addMissingPathParams(string $path, array $methodSpec): array
+    {
         preg_match_all('/\{(\w+)\}/', $path, $matches);
+        $hasPathParams = count($matches[1]) > 0;
+        if (!$hasPathParams) {
+            return $methodSpec;
+        }
 
-        if (isset($matches[1])) {
-            foreach ($matches[1] as $parameterName) {
-                $this->outputSpec['paths'][$path][$method]['parameters'][] = [
+        if (!isset($methodSpec['parameters'])) {
+            $methodSpec['parameters'] = [];
+        }
+
+        foreach ($matches[1] as $parameterName) {
+            $paramExists = false;
+            foreach ($methodSpec['parameters'] as $param) {
+                if (isset($param['name']) && $param['name'] === $parameterName && isset($param['in']) && $param['in'] === 'path') {
+                    $paramExists = true;
+                    break;
+                }
+            }
+
+            if (!$paramExists) {
+                $methodSpec['parameters'][] = [
                     'name' => $parameterName,
                     'in' => 'path',
                     'required' => true,
@@ -224,33 +305,30 @@ class Generator
             }
         }
 
-        unset($this->outputSpec['paths'][$path][$method]['responses']);
-
-        $this->outputSpec['paths'][$path][$method]['responses'] = $responses;
+        return $methodSpec;
     }
 
     /**
-     * Merges two arrays recursively, with the second array taking precedence.
+     * Adds a method to the output spec file.
      *
-     * @param array<string, mixed> $array1 The first array
-     * @param array<string, mixed> $array2 The second array
-     *
-     * @return array<string, mixed> The merged array
+     * @param string                 $path   The path for the method
+     * @param string                 $method The method to add
+     * @param array<string, mixed>   $spec   The spec for the method
+     * @return array<string, mixed>  The merged method config
      */
-    private function array_merge_overwrite(array &$array1, array &$array2)
+    protected function getNormalizedMethod(string $path, string $method, array $spec): array
     {
-        $merged = $array1;
-
-        foreach ($array2 as $key => &$value) {
-            if (is_array($value) && isset($merged[$key]) && is_array($merged[$key])) {
-                // If both are arrays, recursively merge
-                $merged[$key] = $this->array_merge_overwrite($merged[$key], $value);
-            } else {
-                // Otherwise, replace the value
-                $merged[$key] = $value;
-            }
+        $defaultPathConfig = $this->config->get('path-defaults') ?? [];
+        $methodConfig = $this->config->get("path-overrides.{$path}.{$method}") ?? [];
+        $mergedConfig = $defaultPathConfig;
+        foreach ($methodConfig as $key => $value) {
+            $mergedConfig[$key] = $value;
         }
-
-        return $merged;
+        $mergedConfig = Helpers::array_merge_overwrite($mergedConfig, $spec);
+        if (!is_null($this->backendHost)) {
+            $mergedConfig['x-google-backend']['address'] = $this->backendHost;
+        }
+        unset($mergedConfig['paths'][$path]['parameters']);
+        return $mergedConfig;
     }
 }
