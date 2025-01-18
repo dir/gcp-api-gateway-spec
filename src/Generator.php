@@ -45,6 +45,12 @@ class Generator
     protected bool $preserveResponses;
 
     /**
+     * Unsupported properties to remove recursively
+     * @var array<string>
+     */
+    protected array $unsupportedProperties = ['additionalItems', 'patternProperties', 'dependencies', 'propertyNames', 'contains', 'const', 'if', 'then', 'else'];
+
+    /**
      * Create a new Generator instance.
      *
      * @param string $inputSpec Path to the input Swagger 2.0 spec file
@@ -106,6 +112,7 @@ class Generator
         }
 
         $this->recursivelyFixTypes($this->outputSpec);
+        $this->recursivelyRemoveUnsupportedProperties($this->outputSpec);
     }
 
     /**
@@ -321,6 +328,22 @@ class Generator
                 }
             } elseif (is_array($value)) {
                 $this->recursivelyFixTypes($value);
+            }
+        }
+    }
+
+    /**
+     * Recursively removes unsupported properties from the spec.
+     *
+     * @param array<string, mixed> &$data The data to process
+     */
+    protected function recursivelyRemoveUnsupportedProperties(array &$data): void
+    {
+        foreach ($data as $key => &$value) {
+            if (in_array($key, $this->unsupportedProperties, true)) {
+                unset($data[$key]);
+            } elseif (is_array($value)) {
+                $this->recursivelyRemoveUnsupportedProperties($value);
             }
         }
     }
