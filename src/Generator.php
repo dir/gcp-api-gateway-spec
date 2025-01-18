@@ -95,11 +95,17 @@ class Generator
     {
         $this->createBaseSpec();
 
+        if (isset($this->inputSpec['definitions'])) {
+            foreach ($this->inputSpec['definitions'] as $definitionName => $definition) {
+                $this->addDefinition($definitionName, $definition);
+            }
+        }
+
         foreach ($this->inputSpec['paths'] as $path => $methods) {
             $this->addPath($path, $methods);
         }
 
-        // Recursively look for "type" keys in the output spec, and 
+        $this->recursivelyFixTypes($this->outputSpec);
     }
 
     /**
@@ -157,6 +163,17 @@ class Generator
     }
 
     /**
+     * Adds a definition to the output spec file.
+     *
+     * @param string              $name      The name of the definition
+     * @param array<string, mixed> $definition The definition to add
+     */
+    protected function addDefinition(string $name, array $definition): void
+    {
+        $this->outputSpec['definitions'][$name] = $definition;
+    }
+
+    /**
      * Adds a path to the output spec file.
      *
      * @param string               $path    The path to add
@@ -186,9 +203,6 @@ class Generator
         if (isset($methodSpec['responses'])) {
             $methodSpec['responses'] = $this->getMethodResponses($methodSpec['responses']);
         }
-        if (isset($methodSpec['parameters'])) {
-            $methodSpec['parameters'] = $this->getFixedParameters($methodSpec['parameters']);
-        }
 
         $this->outputSpec['paths'][$path][$method] = $methodSpec;
     }
@@ -213,58 +227,6 @@ class Generator
         }
 
         return $responses;
-    }
-
-    /**
-     * Fixes broken path parameters
-     * 
-     * Converts arrays of types to single types, and removes 'null' types
-     * in favor of x-nullable: true
-     *
-     * @param array<string, mixed>   $parameters The spec for the method
-     * @return array<string, mixed>  The merged method config
-     */
-    protected function getFixedParameters(array $parameters): array
-    {
-        foreach ($parameters as &$param) {
-            if (isset($param['type']) && is_array($param['type'])) {
-                if (in_array('null', $param['type'], true)) {
-                    $param['x-nullable'] = true;
-                    $param['type'] = array_filter($param['type'], fn($type) => $type !== 'null');
-                    $param['type'] = reset($param['type']);
-                }
-            }
-            if (isset($param['schema']) && isset($param['schema']['properties'])) {
-                $schemaProperties = &$param['schema']['properties'];
-                foreach ($schemaProperties as &$property) {
-                    if (isset($property['type']) && is_array($property['type'])) {
-                        if (in_array('null', $property['type'], true)) {
-                            $property['x-nullable'] = true;
-                            $property['type'] = array_filter($property['type'], fn($type) => $type !== 'null');
-                            $property['type'] = reset($property['type']);
-                        }
-                    }
-                }
-                unset($property); // Unset the reference to avoid accidental modifications
-            }
-        }
-        unset($param); // Unset the reference to avoid accidental modifications
-
-        return $parameters;
-    }
-
-    protected function getFixedType(mixed $type): string
-    {
-        if (!is_array($type)) {
-            return $type;
-        }
-
-        if (in_array('null', $type, true)) {
-            $type = array_filter($type, fn($type) => $type !== 'null');
-            $type = reset($type);
-        }
-
-        return $type;
     }
 
     /**
@@ -330,5 +292,36 @@ class Generator
         }
         unset($mergedConfig['paths'][$path]['parameters']);
         return $mergedConfig;
+    }
+
+    /**
+     * Recursively fixes ALL occurences of type in the spec.
+     * 
+     * Removes null values and replaces them with x-nullable: true,
+     * and fixes array types to the first non-null type.
+     *
+     * @param array<string, mixed> &$data The data to process
+     */
+    protected function recursivelyFixTypes(array &$data): void
+    {
+        foreach ($data as $key => &$value) {
+            if ($key === 'type') {
+                $hasNull = false;
+                if (is_array($value)) {
+                    $hasNull = in_array('null', $value, true);
+                    $value = array_filter($value, fn($type) => $type !== 'null');
+                    $value = reset($value);
+                } elseif ($value === 'null') {
+                    $hasNull = true;
+                    $value = 'string';
+                }
+                
+                if ($hasNull) {
+                    $data['x-nullable'] = true;
+                }
+            } elseif (is_array($value)) {
+                $this->recursivelyFixTypes($value);
+            }
+        }
     }
 }

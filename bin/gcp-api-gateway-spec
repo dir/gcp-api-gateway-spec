@@ -8,7 +8,7 @@ use Symfony\Component\Console\Application;
 
 $application = new Application();
 $application->setName('gcp-api-gateway-spec');
-$application->setVersion('2.0.0');
+$application->setVersion('2.0.1');
 
 $application->add(new Generate());
 
