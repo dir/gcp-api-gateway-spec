@@ -1,0 +1,67 @@
+swagger: '2.0'
+info:
+  title: 'Vendor Extension Passthrough'
+  description: ''
+  version: 1.0.0
+basePath: /
+schemes:
+  - https
+produces:
+  - application/json
+consumes:
+  - application/json
+host: api.example.com
+x-google-backend:
+  address: 'https://backend.example.com'
+paths:
+  x-paths-level-extension:
+    schema:
+      security: []
+      x-google-backend:
+        address: 'https://backend.example.com'
+      responses:
+        '200':
+          description: 'Successful response'
+          schema:
+            type: object
+    items:
+      security: []
+      x-google-backend:
+        address: 'https://backend.example.com'
+      responses:
+        '200':
+          description: 'Successful response'
+          schema:
+            type: object
+  /widgets:
+    x-path-item-extension:
+      security: []
+      schema: []
+      responses: []
+      parameters:
+        -
+          schema: []
+      x-google-backend:
+        address: 'https://backend.example.com'
+    get:
+      security: []
+      responses:
+        '200':
+          description: ok
+          schema:
+            $ref: '#/definitions/Widget'
+        x-response-extension:
+          schema: []
+          note: 'arbitrary data keyed under responses'
+      x-google-backend:
+        address: 'https://backend.example.com'
+definitions:
+  Widget:
+    type: object
+    x-definition-extension:
+      schema: []
+      items: []
+    properties:
+      name:
+        type: string
+        x-property-extension: []

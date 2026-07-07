@@ -1,0 +1,33 @@
+swagger: "2.0"
+info:
+  title: Vendor Extension Passthrough
+  version: "1.0.0"
+paths:
+  x-paths-level-extension:
+    schema: {}
+    items: []
+  /widgets:
+    x-path-item-extension:
+      schema: {}
+      responses: []
+      parameters:
+        - schema: {}
+    get:
+      responses:
+        "200":
+          description: ok
+          schema:
+            $ref: "#/definitions/Widget"
+        x-response-extension:
+          schema: []
+          note: arbitrary data keyed under responses
+definitions:
+  Widget:
+    type: object
+    x-definition-extension:
+      schema: {}
+      items: []
+    properties:
+      name:
+        type: string
+        x-property-extension: []

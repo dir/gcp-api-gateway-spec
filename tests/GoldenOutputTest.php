@@ -51,9 +51,9 @@ final class GoldenOutputTest extends TestCase
         }
 
         // Different symfony/yaml dump style: compare semantically instead.
-        self::assertEquals(
-            YamlDumpStyle::parseSemantic($expected),
-            YamlDumpStyle::parseSemantic($generated),
+        self::assertSame(
+            YamlDumpStyle::canonicalize($expected),
+            YamlDumpStyle::canonicalize($generated),
             "Generated output for fixture '{$case}' is semantically different from its golden expected.yaml."
         );
     }

@@ -4,6 +4,7 @@ storage/phpstan/*
 .phpunit.result.cache
 
 # Local scratch files (root-anchored so tests/fixtures are not ignored)
+/var/
 /config.yml
 /config.yaml
 /openapi.yml

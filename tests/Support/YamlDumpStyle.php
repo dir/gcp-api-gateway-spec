@@ -20,12 +20,17 @@ final class YamlDumpStyle
     }
 
     /**
-     * Parses YAML preserving the map/sequence distinction (maps become
-     * stdClass), so that semantic comparison still catches an empty schema
-     * degrading to an empty sequence.
+     * Canonicalizes YAML for strict semantic comparison: parsing with
+     * PARSE_OBJECT_FOR_MAP preserves the map/sequence distinction (an empty
+     * schema degrading to an empty sequence stays detectable), and the JSON
+     * encoding keeps scalar types strict ('1.0' vs 1.0, 'true' vs true),
+     * unlike assertEquals over object trees.
      */
-    public static function parseSemantic(string $yaml): mixed
+    public static function canonicalize(string $yaml): string
     {
-        return Yaml::parse($yaml, Yaml::PARSE_OBJECT_FOR_MAP);
+        return json_encode(
+            Yaml::parse($yaml, Yaml::PARSE_OBJECT_FOR_MAP),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION
+        );
     }
 }

@@ -152,7 +152,7 @@ path-overrides:
       security: []
 ```
 
-For each operation, the effective spec is built by layering (later wins): `path-defaults` → the matching `path-overrides.<path>.<method>` entry → the operation from the input spec.
+For each operation, the effective spec starts from `path-defaults`, with same-named keys replaced wholesale by the matching `path-overrides.<path>.<method>` entry; the operation from the input spec is then merged in recursively, winning per key (and per index for lists). Note this means an override such as `security: []` cannot remove a `security` list the input spec itself defines — the input's entries win index-wise. It does work for the common case where security comes from `path-defaults`.
 
 ## Normalization
 
@@ -160,7 +160,7 @@ Besides merging the config, the generator applies a few normalizations so that t
 
 - **Responses** are replaced with a generic `200` response unless `--preserve-responses` is passed. Empty `responses` maps are replaced with the generic response as well.
 - **Path parameters** that appear in a path template (e.g. `/pets/{petId}`) but are not declared on the operation are added as required string parameters.
-- **Nullable types** are rewritten: `type: [string, "null"]` becomes `type: string` with `x-nullable: true`, and `type: "null"` becomes `type: string` with `x-nullable: true`.
+- **Nullable types** are rewritten: `type: "null"` becomes `type: string` with `x-nullable: true`. A `type` list collapses to its first non-`"null"` entry (so `type: [string, "null"]` becomes `type: string` with `x-nullable: true`, and a multi-type list like `type: [string, integer]` becomes `type: string`). Properties literally named `type`, and map-valued `type` keys inside free-form data (`examples`, `default`, `enum` values, `x-` extensions), are left untouched.
 - **Unsupported JSON Schema keywords** are removed: `additionalItems`, `patternProperties`, `dependencies`, `propertyNames`, `contains`, `const`, `if`, `then`, `else`.
 - **Empty schemas** (e.g. `nickname: {}`, common in specs converted with api-spec-converter) are kept as empty objects instead of degrading to `[]`, which the API Gateway validator rejects. Empty sequences such as `security: []` are unaffected.
 

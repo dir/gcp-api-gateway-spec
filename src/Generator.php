@@ -63,6 +63,12 @@ class Generator
     protected array $unsupportedProperties = ['additionalItems', 'patternProperties', 'dependencies', 'propertyNames', 'contains', 'const', 'if', 'then', 'else'];
 
     /**
+     * HTTP methods that identify operations in a path item.
+     * @var array<string>
+     */
+    protected array $httpMethods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch'];
+
+    /**
      * Create a new Generator instance.
      *
      * @param string $inputSpec Path to the input Swagger 2.0 spec file
@@ -123,9 +129,14 @@ class Generator
             $this->addPath($path, $methods);
         }
 
-        $this->recursivelyFixTypes($this->outputSpec);
+        // Order matters: unsupported-keyword removal can empty a schema, so
+        // it runs before the empty-schema fix; the empty-schema fix converts
+        // empty property schemas to objects before the type normalization
+        // would otherwise mistake e.g. a property named `type` with an empty
+        // schema for a type declaration.
         $this->recursivelyRemoveUnsupportedProperties($this->outputSpec);
         $this->fixEmptySchemas($this->outputSpec);
+        $this->recursivelyFixTypes($this->outputSpec);
     }
 
     /**
@@ -221,7 +232,7 @@ class Generator
 
         $methodSpec = $this->addMissingPathParams($path, $methodSpec);
         if (isset($methodSpec['responses'])) {
-            $methodSpec['responses'] = $this->getMethodResponses($methodSpec['responses']);
+            $methodSpec['responses'] = $this->getMethodResponses($methodSpec['responses'], $method);
         } else {
             $methodSpec['responses'] = $this->defaultResponses;
         }
@@ -233,14 +244,17 @@ class Generator
      * Gets the responses for a method
      *
      * @param array<string, mixed>   $responses The original responses for the method
+     * @param string                 $method    The path-item key being processed
      * @return array<int|string, mixed>  The responses for the method
      */
-    protected function getMethodResponses(array $responses): array
+    protected function getMethodResponses(array $responses, string $method): array
     {
         // An empty responses map would be dumped as `[]`, which the Swagger
         // 2.0 schema rejects (responses requires at least one entry), so
-        // treat it the same as a missing responses key.
-        if ($responses === []) {
+        // treat it the same as a missing responses key. Only for real HTTP
+        // methods: path-item vendor extensions iterated by addPath() may
+        // legitimately contain an empty `responses` list that must survive.
+        if ($responses === [] && in_array($method, $this->httpMethods, true)) {
             return $this->defaultResponses;
         }
 
@@ -404,8 +418,12 @@ class Generator
             return;
         }
 
-        foreach ($spec['paths'] as &$path) {
-            if (!is_array($path)) {
+        // Only walk real paths and, within them, real operations and
+        // parameter lists. Vendor extensions (x-*) at the paths, path-item
+        // and responses levels hold arbitrary data that must pass through
+        // untouched even when it happens to contain schema-shaped keys.
+        foreach ($spec['paths'] as $pathName => &$path) {
+            if (!is_string($pathName) || !str_starts_with($pathName, '/') || !is_array($path)) {
                 continue;
             }
 
@@ -419,12 +437,20 @@ class Generator
                     continue;
                 }
 
+                if (!in_array($key, $this->httpMethods, true)) {
+                    continue;
+                }
+
                 if (isset($operation['parameters']) && is_array($operation['parameters'])) {
                     $this->fixParameterSchemas($operation['parameters']);
                 }
 
                 if (isset($operation['responses']) && is_array($operation['responses'])) {
-                    foreach ($operation['responses'] as &$response) {
+                    foreach ($operation['responses'] as $responseKey => &$response) {
+                        if (is_string($responseKey) && str_starts_with($responseKey, 'x-')) {
+                            continue;
+                        }
+
                         if (is_array($response) && array_key_exists('schema', $response)) {
                             $this->fixSchemaValue($response['schema']);
                         }
