@@ -49,29 +49,43 @@ You can view the path to your composer's home directory by running `composer -n 
 
 ### Requirements
 
-- Swagger 2.0 YAML spec file
+- Swagger 2.0 YAML spec file, passed as the first argument to `generate`
   - If you are working with an OpenAPI 3.0 spec file, I recommend using [api-spec-converter](https://github.com/LucyBot-Inc/api-spec-converter) to create a Swagger 2.0 spec file.
-- Configuration file (see [Configuration](#Configuration))
-- Output
-  - Can be absolute path, relative path, or either + a filename. If no filename is provided, the generated file will be named `generator-output.yaml`.
+- Configuration file (see [Configuration](#configuration))
 
 ### Command
 
 ```bash
-gcp-api-gateway-spec generate \
-  --input=swagger2.yaml \
+gcp-api-gateway-spec generate swagger2.yaml \
   --output=api-gateway.yaml \
   --config=config.yaml \
+  [--host=api.example.com] \
+  [--backend=https://backend.example.com] \
   [--preserve-responses]
 ```
+
+| Argument / option      | Description                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `input` (argument)     | Path to the input Swagger 2.0 YAML spec file. Required.                                                   |
+| `--output`, `-o`       | Where to write the generated spec. See [Output path resolution](#output-path-resolution).                 |
+| `--config`, `-c`       | Path to the config file. Required.                                                                        |
+| `--host`               | Sets the top-level `host` of the generated spec. Optional.                                                |
+| `--backend`, `-b`      | Sets `x-google-backend.address` at the top level and on every operation. Optional.                        |
+| `--preserve-responses`, `-p` | Keep the response schemas from the input spec. By default responses are replaced with a generic 200. |
+
+### Output path resolution
+
+- **Absolute path** (e.g. `--output=/tmp/specs/api-gateway.yaml`): used as-is. Missing directories are created.
+- **Relative path** (e.g. `--output=build/api-gateway.yaml`): resolved against the current working directory.
+- **Directory** (existing): the file is written inside it as `generator-output.yaml`.
+- **Omitted**: writes `generator-output.yaml` in the current working directory.
 
 ### Examples
 
 Absolute path with filename:
 
 ```bash
-gcp-api-gateway-spec generate \
-    --input=swagger.yaml \
+gcp-api-gateway-spec generate swagger.yaml \
     --output=/tmp/api-gateway.yaml \
     --config=config.yaml
 ```
@@ -79,30 +93,87 @@ gcp-api-gateway-spec generate \
 With `--preserve-responses` and a relative output to cwd:
 
 ```bash
-gcp-api-gateway-spec generate \
-    --input=swagger.yaml \
-    --output=api-gateway.yaml
+gcp-api-gateway-spec generate swagger.yaml \
+    --output=api-gateway.yaml \
     --config=config.yaml \
     --preserve-responses
 ```
 
 ## Configuration
 
-Below are the configuration options, take a look at the [example config](config.example.yaml) for a more practical example.
+Values in the config file take precedence over the corresponding values in the input spec (`info`, `basePath`, `produces`, `consumes`, `securityDefinitions`, `x-google-backend`). Take a look at the [example config](config.example.yaml) for a practical example.
 
 ```yaml
-# Define your security definitions here
-securityDefinitions: []
+# Optional; taken from the input spec if not set here
+info:
+  title: My API
+  version: "1.0.0"
 
-# Default configuration applied to all paths if not overridden
+# Optional, defaults to /
+basePath: /v1
+
+# Optional, defaults to application/json
+produces:
+  - application/json
+consumes:
+  - application/json
+
+# Define your security definitions here
+securityDefinitions:
+  auth0:
+    authorizationUrl: 'https://example.auth0.com/authorize'
+    flow: implicit
+    type: oauth2
+    x-google-issuer: 'https://example.auth0.com/'
+    x-google-jwks_uri: 'https://example.auth0.com/.well-known/jwks.json'
+    x-google-audiences: 'https://example.com'
+
+# Top-level x-google-backend (the --backend option overrides its address)
+x-google-backend:
+  path_translation: 'APPEND_PATH_TO_ADDRESS'
+
+# Default configuration applied to every operation if not overridden
 # Useful for setting global security definitions
 path-defaults:
-  security: []
+  security:
+    - auth0: []
+  x-google-backend:
+    path_translation: 'APPEND_PATH_TO_ADDRESS'
 
 # Path/method specific overrides
-# Useful for setting security definitions on specific paths
-path-overrides: []
+# Useful for removing security from specific paths
+path-overrides:
+  /unsecured-route:
+    post:
+      consumes:
+        - multipart/form-data
+      security: []
+    get:
+      security: []
 ```
+
+For each operation, the effective spec is built by layering (later wins): `path-defaults` → the matching `path-overrides.<path>.<method>` entry → the operation from the input spec.
+
+## Normalization
+
+Besides merging the config, the generator applies a few normalizations so that the output passes the API Gateway's Swagger 2.0 validation:
+
+- **Responses** are replaced with a generic `200` response unless `--preserve-responses` is passed. Empty `responses` maps are replaced with the generic response as well.
+- **Path parameters** that appear in a path template (e.g. `/pets/{petId}`) but are not declared on the operation are added as required string parameters.
+- **Nullable types** are rewritten: `type: [string, "null"]` becomes `type: string` with `x-nullable: true`, and `type: "null"` becomes `type: string` with `x-nullable: true`.
+- **Unsupported JSON Schema keywords** are removed: `additionalItems`, `patternProperties`, `dependencies`, `propertyNames`, `contains`, `const`, `if`, `then`, `else`.
+- **Empty schemas** (e.g. `nickname: {}`, common in specs converted with api-spec-converter) are kept as empty objects instead of degrading to `[]`, which the API Gateway validator rejects. Empty sequences such as `security: []` are unaffected.
+
+## Development
+
+```bash
+composer install
+vendor/bin/phpunit             # tests (golden files + schema validation)
+vendor/bin/phpstan analyse     # static analysis
+vendor/bin/php-cs-fixer fix    # code style
+```
+
+Generated output is byte-compared against golden files in `tests/fixtures/cases/*/expected.yaml` and validated against the official Swagger 2.0 JSON schema — the same validation `gcloud api-gateway api-configs create` performs. After an intentional output change, regenerate goldens with `UPDATE_GOLDENS=1 vendor/bin/phpunit`.
 
 ## Disclaimer
 

@@ -3,6 +3,7 @@
 namespace LukeDavis\GcpApiGatewaySpec\Tests;
 
 use LukeDavis\GcpApiGatewaySpec\Tests\Support\RunsFixtures;
+use LukeDavis\GcpApiGatewaySpec\Tests\Support\YamlDumpStyle;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,6 +26,10 @@ final class GoldenOutputTest extends TestCase
         $expectedFile = $this->fixtureDir($case).'/expected.yaml';
 
         if (getenv('UPDATE_GOLDENS') === '1') {
+            if (!YamlDumpStyle::matchesGoldens()) {
+                self::fail('Goldens must be regenerated with a symfony/yaml version matching their dump style (>= 6.3, < 8.0).');
+            }
+
             file_put_contents($expectedFile, $generated);
             $this->addToAssertionCount(1);
 
@@ -32,11 +37,24 @@ final class GoldenOutputTest extends TestCase
         }
 
         self::assertFileExists($expectedFile);
-        self::assertSame(
-            (string) file_get_contents($expectedFile),
-            $generated,
-            "Generated output for fixture '{$case}' differs from its golden expected.yaml.\n"
-            .'If this change is intentional, regenerate goldens with: UPDATE_GOLDENS=1 vendor/bin/phpunit'
+        $expected = (string) file_get_contents($expectedFile);
+
+        if (YamlDumpStyle::matchesGoldens()) {
+            self::assertSame(
+                $expected,
+                $generated,
+                "Generated output for fixture '{$case}' differs from its golden expected.yaml.\n"
+                .'If this change is intentional, regenerate goldens with: UPDATE_GOLDENS=1 vendor/bin/phpunit'
+            );
+
+            return;
+        }
+
+        // Different symfony/yaml dump style: compare semantically instead.
+        self::assertEquals(
+            YamlDumpStyle::parseSemantic($expected),
+            YamlDumpStyle::parseSemantic($generated),
+            "Generated output for fixture '{$case}' is semantically different from its golden expected.yaml."
         );
     }
 

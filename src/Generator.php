@@ -3,7 +3,6 @@
 namespace LukeDavis\GcpApiGatewaySpec;
 
 use Symfony\Component\Yaml\Yaml;
-use LukeDavis\GcpApiGatewaySpec\Helpers;
 
 class Generator
 {
@@ -78,8 +77,8 @@ class Generator
         ?string $host = null,
         #[\SensitiveParameter]
         ?string $backendHost = null,
-        bool $preserveResponses = false)
-    {
+        bool $preserveResponses = false
+    ) {
         $this->inputSpec = Yaml::parseFile($inputSpec);
 
         $this->config = new Config(
@@ -319,7 +318,7 @@ class Generator
 
     /**
      * Recursively fixes ALL occurences of type in the spec.
-     * 
+     *
      * Removes null values and replaces them with x-nullable: true,
      * and fixes array types to the first non-null type.
      *
@@ -338,13 +337,13 @@ class Generator
                 $hasNull = false;
                 if (is_array($value)) {
                     $hasNull = in_array('null', $value, true);
-                    $value = array_filter($value, fn($type) => $type !== 'null');
+                    $value = array_filter($value, fn ($type) => $type !== 'null');
                     $value = reset($value);
                 } elseif ($value === 'null') {
                     $hasNull = true;
                     $value = 'string';
                 }
-                
+
                 if ($hasNull) {
                     $data['x-nullable'] = true;
                 }

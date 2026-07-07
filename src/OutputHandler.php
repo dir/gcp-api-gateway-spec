@@ -46,6 +46,16 @@ class OutputHandler
             mkdir($outputDir, 0755, true);
         }
 
+        $flags = Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_EXCEPTION_ON_INVALID_TYPE | Yaml::DUMP_OBJECT_AS_MAP;
+
+        // Only available in symfony/yaml >= 6.3, which requires PHP >= 8.1.
+        // Referencing it conditionally keeps the tool working on PHP 8.0
+        // (symfony/yaml 6.0-6.2), where numeric keys such as response codes
+        // are dumped unquoted instead.
+        if (\defined(Yaml::class.'::DUMP_NUMERIC_KEY_AS_STRING')) {
+            $flags |= Yaml::DUMP_NUMERIC_KEY_AS_STRING;
+        }
+
         // Save the output spec file
         file_put_contents(
             $outputPath,
@@ -53,7 +63,7 @@ class OutputHandler
                 $outputSpec,
                 10,
                 2,
-                Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_EXCEPTION_ON_INVALID_TYPE | Yaml::DUMP_NUMERIC_KEY_AS_STRING | Yaml::DUMP_OBJECT_AS_MAP
+                $flags
             )
         );
 
@@ -66,13 +76,15 @@ class OutputHandler
     protected function resolveOutputPath(string $output): string
     {
         // Check if the path points to an existing file or directory
-        if (realpath($output) !== false) {
+        $realpath = realpath($output);
+
+        if ($realpath !== false) {
             // If it's a directory, append the default filename
             if (is_dir($output)) {
-                return rtrim(realpath($output), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$this->defaultFilename;
+                return rtrim($realpath, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$this->defaultFilename;
             }
 
-            return realpath($output);
+            return $realpath;
         }
 
         // An absolute path to a file that doesn't exist yet: use it as-is.

@@ -36,14 +36,14 @@
   ],
   "require": {
     "php": ">=8.0",
-    "symfony/console": "^6.0|^7.0",
-    "symfony/yaml": "^6.0|^7.0",
+    "symfony/console": "^6.0|^7.0|^8.0",
+    "symfony/yaml": "^6.0|^7.0|^8.0",
     "composer-runtime-api": "*"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.59",
-    "phpstan/phpstan-strict-rules": "^1.6",
-    "phpstan/phpstan": "^1.11",
+    "phpstan/phpstan-strict-rules": "^1.6|^2.0",
+    "phpstan/phpstan": "^1.11|^2.0",
     "phpunit/phpunit": "^9.6",
     "justinrainbow/json-schema": "^6.10"
   }

@@ -8,8 +8,13 @@ use Symfony\Component\Console\Application;
 
 $application = new Application();
 $application->setName('gcp-api-gateway-spec');
-$application->setVersion('2.0.3');
+$application->setVersion('2.0.4');
 
-$application->add(new Generate());
+// Application::add() was replaced by addCommand() in symfony/console 8
+if (method_exists($application, 'addCommand')) {
+    $application->addCommand(new Generate());
+} else {
+    $application->add(new Generate());
+}
 
 $application->run();

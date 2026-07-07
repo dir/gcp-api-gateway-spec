@@ -3,6 +3,7 @@
 namespace LukeDavis\GcpApiGatewaySpec\Tests;
 
 use LukeDavis\GcpApiGatewaySpec\Tests\Support\RunsFixtures;
+use LukeDavis\GcpApiGatewaySpec\Tests\Support\YamlDumpStyle;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,11 +29,20 @@ final class CliContractTest extends TestCase
             self::assertSame(0, $exitCode, $output);
             self::assertStringContainsString('successfully converted', $output);
             self::assertFileExists($tmp.'/out.yaml');
-            self::assertSame(
-                (string) file_get_contents($case.'/expected.yaml'),
-                (string) file_get_contents($tmp.'/out.yaml'),
-                'CLI-generated output differs from the golden output for the same fixture.'
-            );
+
+            if (YamlDumpStyle::matchesGoldens()) {
+                self::assertSame(
+                    (string) file_get_contents($case.'/expected.yaml'),
+                    (string) file_get_contents($tmp.'/out.yaml'),
+                    'CLI-generated output differs from the golden output for the same fixture.'
+                );
+            } else {
+                self::assertEquals(
+                    YamlDumpStyle::parseSemantic((string) file_get_contents($case.'/expected.yaml')),
+                    YamlDumpStyle::parseSemantic((string) file_get_contents($tmp.'/out.yaml')),
+                    'CLI-generated output is semantically different from the golden output for the same fixture.'
+                );
+            }
         } finally {
             @unlink($tmp.'/out.yaml');
             @rmdir($tmp);
