@@ -1,0 +1,61 @@
+swagger: '2.0'
+info:
+  title: 'Type Property Regression'
+  description: ''
+  version: 1.0.0
+basePath: /
+schemes:
+  - https
+produces:
+  - application/json
+consumes:
+  - application/json
+host: api.example.com
+x-google-backend:
+  address: 'https://backend.example.com'
+paths:
+  '/users/{userId}':
+    get:
+      security: []
+      responses:
+        '200':
+          description: 'Successful response'
+          schema:
+            type: object
+      x-google-backend:
+        address: 'https://backend.example.com'
+      parameters:
+        -
+          name: userId
+          in: path
+          required: true
+          type: string
+definitions:
+  UserResource:
+    type: object
+    properties:
+      id:
+        type: integer
+      type:
+        type: string
+      status:
+        type: string
+        x-nullable: true
+  EventResource:
+    type: object
+    properties:
+      type:
+        type: string
+        enum:
+          - created
+          - updated
+          - deleted
+      payload:
+        type: object
+        properties:
+          type:
+            type: object
+            properties:
+              kind:
+                type: integer
+                x-nullable: true

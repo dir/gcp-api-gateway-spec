@@ -328,7 +328,13 @@ class Generator
     protected function recursivelyFixTypes(array &$data): void
     {
         foreach ($data as $key => &$value) {
-            if ($key === 'type') {
+            // Only treat `type` as a schema-type declaration when its value
+            // is a scalar or a list (e.g. `type: string`, `type: [string,
+            // 'null']`). An associative-array value means `type` is a
+            // property literally named "type" whose value is itself a schema
+            // object (e.g. properties.type) — recurse instead of collapsing
+            // it to its first element.
+            if ($key === 'type' && !self::isAssociativeArray($value)) {
                 $hasNull = false;
                 if (is_array($value)) {
                     $hasNull = in_array('null', $value, true);
@@ -362,6 +368,19 @@ class Generator
                 $this->recursivelyRemoveUnsupportedProperties($value);
             }
         }
+    }
+
+    /**
+     * Whether a value is an associative (non-list) array.
+     *
+     * Equivalent to `is_array($value) && !array_is_list($value)`, without
+     * requiring PHP 8.1 for array_is_list().
+     */
+    protected static function isAssociativeArray(mixed $value): bool
+    {
+        return is_array($value)
+            && $value !== []
+            && array_keys($value) !== range(0, count($value) - 1);
     }
 
     /**
