@@ -18,16 +18,26 @@ jobs:
           - php: '8.0'
             deps: lowest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           coverage: none
 
-      - uses: ramsey/composer-install@v3
+      # Composer >= 2.9 blocks advisory-affected versions during resolution.
+      # Every symfony/yaml installable on PHP 8.0 carries (low-severity)
+      # advisories — the 6.x line was only patched in 6.4, which requires
+      # PHP 8.1 — so the floor jobs opt out to prove code compatibility.
+      - name: Allow advisory-affected dependencies on the PHP floor
+        if: matrix.php == '8.0'
+        run: php -r '$j = json_decode(file_get_contents("composer.json"), true); $j["config"]["audit"]["block-insecure"] = false; file_put_contents("composer.json", json_encode($j));'
+
+      - uses: ramsey/composer-install@v4
         with:
           dependency-versions: ${{ matrix.deps }}
+        env:
+          COMPOSER_NO_SECURITY_BLOCKING: ${{ matrix.php == '8.0' && '1' || '' }}
 
       - run: vendor/bin/phpunit
 
@@ -35,14 +45,14 @@ jobs:
     name: Tests (locked deps) + static analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           coverage: none
 
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@v4
 
       - run: vendor/bin/phpunit
 

@@ -21,6 +21,8 @@ The main use case of this tool is an intermediate step in the deployment of an A
 
 Ensure you have [Composer](https://getcomposer.org/) installed and available in your PATH, as well as PHP 8.0 or later.
 
+> **Note for PHP 8.0:** every symfony/yaml version installable on PHP 8.0 carries known (low-severity) security advisories — the 6.x line was only patched in 6.4, which requires PHP 8.1. Composer ≥ 2.9 therefore blocks resolution on PHP 8.0 by default; you would need to opt out via `config.audit.block-insecure: false` (at your own risk). On PHP 8.1+ this does not apply.
+
 ### Local
 
 Run the following command in your project root:
