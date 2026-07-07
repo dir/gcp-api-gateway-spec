@@ -65,7 +65,7 @@ class OutputHandler
      */
     protected function resolveOutputPath(string $output): string
     {
-        // Check if the path is an absolute path
+        // Check if the path points to an existing file or directory
         if (realpath($output) !== false) {
             // If it's a directory, append the default filename
             if (is_dir($output)) {
@@ -73,6 +73,14 @@ class OutputHandler
             }
 
             return realpath($output);
+        }
+
+        // An absolute path to a file that doesn't exist yet: use it as-is.
+        // realpath() returns false for non-existent paths, so without this
+        // check the path would wrongly be resolved relative to the current
+        // working directory.
+        if ($this->isAbsolutePath($output)) {
+            return $output;
         }
 
         // If the path is relative, prepend the current working directory
@@ -84,5 +92,15 @@ class OutputHandler
         }
 
         return $resolvedPath;
+    }
+
+    /**
+     * Whether a path is absolute (Unix or Windows style).
+     */
+    protected function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/')
+            || str_starts_with($path, '\\\\')
+            || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1;
     }
 }

@@ -67,6 +67,8 @@ trait RunsFixtures
         $tmp = sys_get_temp_dir().DIRECTORY_SEPARATOR.'gcp-api-gateway-spec-tests-'.bin2hex(random_bytes(6));
         mkdir($tmp, 0755, true);
 
-        return $tmp;
+        // Resolve symlinks (e.g. /var -> /private/var on macOS) so that
+        // paths derived from getcwd() after chdir() compare as equal.
+        return realpath($tmp) ?: $tmp;
     }
 }
