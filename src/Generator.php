@@ -126,6 +126,7 @@ class Generator
 
         $this->recursivelyFixTypes($this->outputSpec);
         $this->recursivelyRemoveUnsupportedProperties($this->outputSpec);
+        $this->fixEmptySchemas($this->outputSpec);
     }
 
     /**
@@ -237,6 +238,13 @@ class Generator
      */
     protected function getMethodResponses(array $responses): array
     {
+        // An empty responses map would be dumped as `[]`, which the Swagger
+        // 2.0 schema rejects (responses requires at least one entry), so
+        // treat it the same as a missing responses key.
+        if ($responses === []) {
+            return $this->defaultResponses;
+        }
+
         if ($this->preserveResponses) {
             return $responses;
         }
@@ -354,5 +362,153 @@ class Generator
                 $this->recursivelyRemoveUnsupportedProperties($value);
             }
         }
+    }
+
+    /**
+     * Converts empty arrays that occupy schema positions to empty objects.
+     *
+     * The YAML round-trip loses the map/sequence distinction for empty
+     * collections: an empty schema `{}` parses to an empty PHP array and
+     * would otherwise be dumped back as `[]`, which the Swagger 2.0 JSON
+     * schema (and therefore gcloud api-gateway) rejects — a schema must be
+     * an object. Only known schema positions are converted; empty arrays
+     * elsewhere (e.g. `security: []`) still dump as sequences.
+     *
+     * @param array<string, mixed> &$spec The output spec to process
+     */
+    protected function fixEmptySchemas(array &$spec): void
+    {
+        if (isset($spec['definitions']) && is_array($spec['definitions'])) {
+            $this->fixSchemaMap($spec['definitions']);
+        }
+
+        if (!isset($spec['paths']) || !is_array($spec['paths'])) {
+            return;
+        }
+
+        foreach ($spec['paths'] as &$path) {
+            if (!is_array($path)) {
+                continue;
+            }
+
+            foreach ($path as $key => &$operation) {
+                if (!is_array($operation)) {
+                    continue;
+                }
+
+                if ($key === 'parameters') {
+                    $this->fixParameterSchemas($operation);
+                    continue;
+                }
+
+                if (isset($operation['parameters']) && is_array($operation['parameters'])) {
+                    $this->fixParameterSchemas($operation['parameters']);
+                }
+
+                if (isset($operation['responses']) && is_array($operation['responses'])) {
+                    foreach ($operation['responses'] as &$response) {
+                        if (is_array($response) && array_key_exists('schema', $response)) {
+                            $this->fixSchemaValue($response['schema']);
+                        }
+                    }
+                    unset($response);
+                }
+            }
+            unset($operation);
+        }
+        unset($path);
+    }
+
+    /**
+     * Fixes the schema positions of a parameter list: the `schema` of body
+     * parameters and the `items` of non-body (array) parameters.
+     *
+     * @param array<int|string, mixed> &$parameters The parameter list
+     */
+    protected function fixParameterSchemas(array &$parameters): void
+    {
+        foreach ($parameters as &$parameter) {
+            if (!is_array($parameter)) {
+                continue;
+            }
+
+            if (array_key_exists('schema', $parameter)) {
+                $this->fixSchemaValue($parameter['schema']);
+            }
+
+            if (array_key_exists('items', $parameter)) {
+                $this->fixSchemaValue($parameter['items']);
+            }
+        }
+        unset($parameter);
+    }
+
+    /**
+     * Fixes a value known to sit in a schema position: an empty array
+     * becomes an empty object, and a non-empty schema is walked for nested
+     * schema positions. Keywords holding arbitrary data (`default`, `enum`,
+     * `example`, vendor extensions) are deliberately left untouched.
+     *
+     * @param mixed &$value The schema value to process
+     */
+    protected function fixSchemaValue(mixed &$value): void
+    {
+        if ($value === []) {
+            $value = new \stdClass();
+
+            return;
+        }
+
+        if (!is_array($value)) {
+            return;
+        }
+
+        foreach ($value as $keyword => &$child) {
+            switch ($keyword) {
+                case 'properties':
+                    if ($child === []) {
+                        $child = new \stdClass();
+                    } elseif (is_array($child)) {
+                        $this->fixSchemaMap($child);
+                    }
+                    break;
+                case 'items':
+                    if (is_array($child) && $child !== [] && array_keys($child) === range(0, count($child) - 1)) {
+                        // Tuple form: a list of schemas
+                        foreach ($child as &$item) {
+                            $this->fixSchemaValue($item);
+                        }
+                        unset($item);
+                    } else {
+                        $this->fixSchemaValue($child);
+                    }
+                    break;
+                case 'additionalProperties':
+                    $this->fixSchemaValue($child);
+                    break;
+                case 'allOf':
+                    if (is_array($child)) {
+                        foreach ($child as &$subSchema) {
+                            $this->fixSchemaValue($subSchema);
+                        }
+                        unset($subSchema);
+                    }
+                    break;
+            }
+        }
+        unset($child);
+    }
+
+    /**
+     * Fixes each entry of a map of schemas (`definitions`, `properties`).
+     *
+     * @param array<string, mixed> &$schemas The map of schemas
+     */
+    protected function fixSchemaMap(array &$schemas): void
+    {
+        foreach ($schemas as &$schema) {
+            $this->fixSchemaValue($schema);
+        }
+        unset($schema);
     }
 }

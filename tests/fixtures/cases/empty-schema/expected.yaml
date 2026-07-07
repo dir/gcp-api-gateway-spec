@@ -1,0 +1,87 @@
+swagger: '2.0'
+info:
+  title: 'Empty Schema Regression'
+  description: ''
+  version: 1.0.0
+basePath: /
+schemes:
+  - https
+produces:
+  - application/json
+consumes:
+  - application/json
+host: api.example.com
+x-google-backend:
+  address: 'https://backend.example.com'
+paths:
+  /thing:
+    get:
+      security: []
+      x-google-backend:
+        path_translation: APPEND_PATH_TO_ADDRESS
+        address: 'https://backend.example.com'
+      responses:
+        '200':
+          description: ok
+          schema:
+            $ref: '#/definitions/Thing'
+        '204':
+          description: 'response with an empty schema'
+          schema: {  }
+    post:
+      security: []
+      x-google-backend:
+        path_translation: APPEND_PATH_TO_ADDRESS
+        address: 'https://backend.example.com'
+      parameters:
+        -
+          name: body
+          in: body
+          required: true
+          schema: {  }
+        -
+          name: filter
+          in: query
+          type: array
+          items: {  }
+      responses:
+        '200':
+          description: ok
+  /empty-responses:
+    get:
+      security: []
+      x-google-backend:
+        path_translation: APPEND_PATH_TO_ADDRESS
+        address: 'https://backend.example.com'
+      responses:
+        '200':
+          description: 'Successful response'
+          schema:
+            type: object
+definitions:
+  Thing:
+    type: object
+    properties:
+      nickname: {  }
+      strippedToEmpty: {  }
+      emptyItems:
+        type: array
+        items: {  }
+      anyMap:
+        type: object
+        additionalProperties: {  }
+      emptyProps:
+        type: object
+        properties: {  }
+      tuple:
+        type: array
+        items:
+          - {  }
+          -
+            type: string
+  Anything: {  }
+  Combined:
+    allOf:
+      -
+        $ref: '#/definitions/Thing'
+      - {  }

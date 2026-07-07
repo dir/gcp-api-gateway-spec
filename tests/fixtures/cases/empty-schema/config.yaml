@@ -1,0 +1,4 @@
+path-defaults:
+  security: []
+  x-google-backend:
+    path_translation: 'APPEND_PATH_TO_ADDRESS'

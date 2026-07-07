@@ -1,0 +1,58 @@
+swagger: "2.0"
+info:
+  title: Empty Schema Regression
+  version: "1.0.0"
+paths:
+  /thing:
+    get:
+      responses:
+        "200":
+          description: ok
+          schema:
+            $ref: "#/definitions/Thing"
+        "204":
+          description: response with an empty schema
+          schema: {}
+    post:
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema: {}
+        - name: filter
+          in: query
+          type: array
+          items: {}
+      responses:
+        "200":
+          description: ok
+      security: []
+  /empty-responses:
+    get:
+      responses: {}
+definitions:
+  Thing:
+    type: object
+    properties:
+      nickname: {}
+      strippedToEmpty:
+        const: only-unsupported-keywords-here
+      emptyItems:
+        type: array
+        items: {}
+      anyMap:
+        type: object
+        additionalProperties: {}
+      emptyProps:
+        type: object
+        properties: {}
+      tuple:
+        type: array
+        items:
+          - {}
+          - type: string
+  Anything: {}
+  Combined:
+    allOf:
+      - $ref: "#/definitions/Thing"
+      - {}

@@ -1,0 +1,5 @@
+{
+    "host": "api.example.com",
+    "backend": "https://backend.example.com",
+    "preserveResponses": true
+}
