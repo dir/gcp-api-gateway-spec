@@ -1,0 +1,84 @@
+swagger: '2.0'
+info:
+  title: 'Preserve Responses (overridden by config)'
+  description: ''
+  version: 4.0.0
+basePath: /api
+schemes:
+  - https
+produces:
+  - application/json
+consumes:
+  - application/json
+x-google-backend:
+  address: 'https://backend.example.com'
+  path_translation: APPEND_PATH_TO_ADDRESS
+paths:
+  /users:
+    get:
+      security: []
+      summary: 'List users'
+      tags: []
+      responses:
+        '200':
+          description: 'A list of users'
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+        '404':
+          description: 'Not found'
+  '/users/{userId}':
+    patch:
+      security: []
+      summary: 'Update a user'
+      parameters:
+        -
+          name: userId
+          in: path
+          required: true
+          type: string
+        -
+          name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/UserUpdate'
+      responses:
+        '200':
+          description: 'The updated user'
+          schema:
+            $ref: '#/definitions/User'
+definitions:
+  User:
+    type: object
+    properties:
+      id:
+        type: integer
+      email:
+        type: string
+      nickname:
+        type: string
+        x-nullable: true
+      lastSeenAt:
+        type: string
+        x-nullable: true
+      settings:
+        type: object
+        additionalProperties:
+          type: string
+      roles:
+        type: array
+        items:
+          type: string
+  UserUpdate:
+    type: object
+    properties:
+      email:
+        type: string
+      nested:
+        type: object
+        properties:
+          deep:
+            type: integer
+            x-nullable: true

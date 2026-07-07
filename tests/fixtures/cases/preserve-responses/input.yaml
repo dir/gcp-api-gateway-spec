@@ -1,0 +1,69 @@
+swagger: "2.0"
+info:
+  title: Preserve Responses
+  version: "3.2.1"
+paths:
+  /users:
+    get:
+      summary: List users
+      tags: []
+      responses:
+        "200":
+          description: A list of users
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/User"
+        "404":
+          description: Not found
+  /users/{userId}:
+    patch:
+      summary: Update a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/UserUpdate"
+      responses:
+        "200":
+          description: The updated user
+          schema:
+            $ref: "#/definitions/User"
+definitions:
+  User:
+    type: object
+    properties:
+      id:
+        type: integer
+      email:
+        type: string
+      nickname:
+        type: ["string", "null"]
+      lastSeenAt:
+        type: "null"
+      settings:
+        type: object
+        additionalProperties:
+          type: string
+      roles:
+        type: array
+        items:
+          type: string
+        contains:
+          type: string
+  UserUpdate:
+    type: object
+    properties:
+      email:
+        type: string
+        const: ignored-unsupported-keyword
+      nested:
+        type: object
+        properties:
+          deep:
+            type: ["integer", "null"]

@@ -1,0 +1,12 @@
+info:
+  title: Preserve Responses (overridden by config)
+  version: "4.0.0"
+
+basePath: /api
+
+x-google-backend:
+  address: 'https://backend.example.com'
+  path_translation: 'APPEND_PATH_TO_ADDRESS'
+
+path-defaults:
+  security: []

@@ -1,9 +1,13 @@
 vendor
 storage/phpstan/*
-config.yml
-openapi.yml
-out
-generator-output.yaml
-config.yaml
-in
-tmp
+.php-cs-fixer.cache
+.phpunit.result.cache
+
+# Local scratch files (root-anchored so tests/fixtures are not ignored)
+/config.yml
+/config.yaml
+/openapi.yml
+/out
+/in
+/tmp
+/generator-output.yaml
